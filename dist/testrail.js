@@ -1,5 +1,6 @@
 "use strict";
 var globalRunId = null;
+var runSuiteId = null;
 Object.defineProperty(exports, "__esModule", {value: true});
 var axios = require('axios');
 var chalk = require('chalk');
@@ -9,8 +10,9 @@ var TestRail = /** @class */ (function () {
         this.base = "https://" + options.domain + "/index.php?/api/v2";
     }
 
-    TestRail.prototype.createRun = function (name, description) {
-        if (globalRunId == null) {
+    TestRail.prototype.createRun = function (name, description, suiteId) {
+        // Make a new request per Suite
+        if (suiteId && runSuiteId !== suiteId) {
             var _this = this;
             axios({
                 method: 'post',
@@ -21,7 +23,7 @@ var TestRail = /** @class */ (function () {
                     password: this.options.password,
                 },
                 data: JSON.stringify({
-                    suite_id: this.options.suiteId,
+                    suite_id: suiteId,
                     name: name,
                     description: description,
                     include_all: true,
@@ -29,7 +31,8 @@ var TestRail = /** @class */ (function () {
             })
                 .then(function (response) {
                     _this.runId = response.data.id;
-                    globalRunId = response.data.id
+                    globalRunId = response.data.id;
+                    runSuiteId = suiteId
                 })
                 .catch(function (error) {
                     return console.error(error);

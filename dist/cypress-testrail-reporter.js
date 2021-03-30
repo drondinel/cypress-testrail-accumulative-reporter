@@ -22,6 +22,11 @@ var CypressTestRailReporter = /** @class */ (function (_super) {
         var _this = _super.call(this, runner) || this;
         _this.results = [];
         var reporterOptions = options.reporterOptions;
+        
+        // Take suite id from the file title (example: "S33 TestName.feature" -> id = 33)
+        var suiteId = shared_1.titleToSuiteId(runner.suite.file);
+        reporterOptions.suiteId = suiteId;
+
         _this.testRail = new testrail_1.TestRail(reporterOptions);
         _this.validate(reporterOptions, 'domain');
         _this.validate(reporterOptions, 'username');
@@ -32,7 +37,7 @@ var CypressTestRailReporter = /** @class */ (function (_super) {
             var executionDateTime = moment().format('MMM Do YYYY, HH:mm (Z)');
             var name = (reporterOptions.runName || 'Automated test run') + " " + executionDateTime;
             var description = 'For the Cypress run visit https://dashboard.cypress.io/#/projects/runs';
-            _this.testRail.createRun(name, description);
+            _this.testRail.createRun(name, description, reporterOptions.suiteId);
         });
         runner.on('pass', function (test) {
             var caseIds = shared_1.titleToCaseIds(test.title);
@@ -41,7 +46,7 @@ var CypressTestRailReporter = /** @class */ (function (_super) {
                     return {
                         case_id: caseId,
                         status_id: testrail_interface_1.Status.Passed,
-                        comment: "Execution time: " + test.duration + "ms",
+                        comment: "Title: " + test.title + ", Scenario " + test.order + ", Execution time: " + test.duration + "ms",
                     };
                 });
                 (_a = _this.results).push.apply(_a, results);
@@ -55,7 +60,7 @@ var CypressTestRailReporter = /** @class */ (function (_super) {
                     return {
                         case_id: caseId,
                         status_id: testrail_interface_1.Status.Failed,
-                        comment: "" + test.err.message,
+                        comment: "Title: " + test.title + ", Scenario " + test.order + ", " + test.err.message,
                     };
                 });
                 (_a = _this.results).push.apply(_a, results);
@@ -69,7 +74,18 @@ var CypressTestRailReporter = /** @class */ (function (_super) {
                // _this.testRail.deleteRun();
                 return;
             }
-            _this.testRail.publishResults(_this.results);
+
+            // Re ordering Test Runs with failed results at the end
+            let arrayFailTests = [];
+            for (let index = 0; index < _this.results.length; index++) {
+                const element = _this.results[index].status_id;
+                if (_this.results[index].status_id === 5) {
+                    arrayFailTests.push(_this.results[index]);
+                    _this.results.splice(index,1);
+                }
+            }
+            var newArrayOrder = _this.results.concat(arrayFailTests);
+            _this.testRail.publishResults(newArrayOrder);
         });
         return _this;
     }
