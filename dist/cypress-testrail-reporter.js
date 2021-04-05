@@ -23,10 +23,6 @@ var CypressTestRailReporter = /** @class */ (function (_super) {
         _this.results = [];
         var reporterOptions = options.reporterOptions;
         
-        // Take suite id from the file title (example: "S33 TestName.feature" -> id = 33)
-        var suiteId = shared_1.titleToSuiteId(runner.suite.file);
-        reporterOptions.suiteId = suiteId;
-
         _this.testRail = new testrail_1.TestRail(reporterOptions);
         _this.validate(reporterOptions, 'domain');
         _this.validate(reporterOptions, 'username');
@@ -34,19 +30,21 @@ var CypressTestRailReporter = /** @class */ (function (_super) {
         _this.validate(reporterOptions, 'projectId');
         _this.validate(reporterOptions, 'suiteId');
         runner.on('start', function () {
-            var executionDateTime = moment().format('MMM Do YYYY, HH:mm (Z)');
+            //var executionDateTime = moment().format('MMM Do YYYY, HH:mm (Z)');
+            var executionDateTime = moment().format('YYYY/MM/DD, HH:mm (Z)');
             var name = (reporterOptions.runName || 'Automated test run') + " " + executionDateTime;
             var description = 'For the Cypress run visit https://dashboard.cypress.io/#/projects/runs';
-            _this.testRail.createRun(name, description, reporterOptions.suiteId);
+            _this.testRail.createRun(name, description);
         });
         runner.on('pass', function (test) {
             var caseIds = shared_1.titleToCaseIds(test.title);
+            var formattedTitle = test.title.replace("(example #", "(scenario #");
             if (caseIds.length > 0) {
                 var results = caseIds.map(function (caseId) {
                     return {
                         case_id: caseId,
                         status_id: testrail_interface_1.Status.Passed,
-                        comment: "Title: " + test.title + ", Scenario " + test.order + ", Execution time: " + test.duration + "ms",
+                        comment: "Title: " + formattedTitle + ", Execution time: " + test.duration + "ms",
                     };
                 });
                 (_a = _this.results).push.apply(_a, results);
@@ -55,12 +53,18 @@ var CypressTestRailReporter = /** @class */ (function (_super) {
         });
         runner.on('fail', function (test) {
             var caseIds = shared_1.titleToCaseIds(test.title);
+            let locationText = test.parent.invocationDetails.absoluteFile;
+            const findText = "/integration/";
+            let index = locationText.indexOf(findText) + findText.length;
+            let path = locationText.substring(index, locationText.length);
+            var formattedTitle = test.title.replace("(example #", "(scenario #");
             if (caseIds.length > 0) {
                 var results = caseIds.map(function (caseId) {
                     return {
                         case_id: caseId,
                         status_id: testrail_interface_1.Status.Failed,
-                        comment: "Title: " + test.title + ", Scenario " + test.order + ", " + test.err.message,
+                        comment: "Title: " + formattedTitle + ", " + test.err.message,
+                        custom_comment: path + "/" + test.parent.title + " -- " + test.title + " (failed).png",
                     };
                 });
                 (_a = _this.results).push.apply(_a, results);
