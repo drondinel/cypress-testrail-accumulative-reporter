@@ -64,7 +64,7 @@ var CypressTestRailReporter = /** @class */ (function (_super) {
                         case_id: caseId,
                         status_id: testrail_interface_1.Status.Failed,
                         comment: "Title: " + formattedTitle + ", " + test.err.message,
-                        custom_comment: path + "/" + test.parent.title + " -- " + test.title + " (failed).png",
+                        custom_path_files: path + "/",
                     };
                 });
                 (_a = _this.results).push.apply(_a, results);

@@ -68,14 +68,16 @@ var TestRail = /** @class */ (function () {
                 for (let index = 0; index < response.data.length; index++) {
                     if (results[index].custom_comment) {
                         testId = response.data[index].id;
-                        var screenshotPath = path.parse('./cypress/screenshots/'+results[index].custom_comment);
-                        let formData = new FormData();
-                        formData.append('attachment', fs.createReadStream(screenshotPath.dir + "/" + screenshotPath.base));
-                        
-                        axios.post(_this.base + "/add_attachment_to_result/" + testId, formData, { headers: formData.getHeaders(), auth: {
-                            username: _this.options.username,
-                            password: _this.options.password,
-                        }});
+                        const filesFolder = './cypress/screenshots/' + results[index].custom_path_files;
+                        fs.readdirSync(filesFolder).forEach(file => {
+                            var screenshotPath = path.parse(filesFolder + file);
+                            let formData = new FormData();
+                            formData.append('attachment', fs.createReadStream(screenshotPath.dir + "/" + screenshotPath.base));
+                            axios.post(_this.base + "/add_attachment_to_result/" + testId, formData, { headers: formData.getHeaders(), auth: {
+                                username: _this.options.username,
+                                password: _this.options.password,
+                            }});
+                        });
                     }
                 }
             })
